@@ -1,0 +1,16 @@
+                                                          QUERY PLAN                                                           
+-------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=8.03..8.20 rows=67 width=186) (actual time=0.109..0.113 rows=56 loops=1)
+   Sort Key: month, total_value DESC
+   Sort Method: quicksort  Memory: 28kB
+   Buffers: shared hit=5
+   ->  Seq Scan on mv_branch_monthly_transfers  (cost=0.00..6.00 rows=67 width=186) (actual time=0.006..0.047 rows=56 loops=1)
+         Filter: (month >= date_trunc('month'::text, (now() - '6 mons'::interval)))
+         Rows Removed by Filter: 144
+         Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=34 read=1
+ Planning Time: 0.128 ms
+ Execution Time: 0.125 ms
+(12 rows)
+

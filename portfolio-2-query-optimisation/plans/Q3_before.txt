@@ -1,0 +1,25 @@
+-- Q3: Customer lookup by phone number (USSD login)
+-- BEFORE indexing
+SELECT c.customer_id, c.first_name, c.last_name, a.account_number, a.balance
+FROM customer c JOIN account a ON a.customer_id = c.customer_id
+WHERE c.phone = '08000002500';
+
+                                                                 QUERY PLAN                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=8.31..210.80 rows=2 width=36) (actual time=0.663..1.309 rows=3 loops=1)
+   Hash Cond: (a.customer_id = c.customer_id)
+   Buffers: shared hit=95
+   ->  Seq Scan on account a  (cost=0.00..179.50 rows=8750 width=23) (actual time=0.003..0.585 rows=8750 loops=1)
+         Buffers: shared hit=92
+   ->  Hash  (cost=8.30..8.30 rows=1 width=17) (actual time=0.024..0.025 rows=1 loops=1)
+         Buckets: 1024  Batches: 1  Memory Usage: 9kB
+         Buffers: shared hit=3
+         ->  Index Scan using customer_phone_key on customer c  (cost=0.28..8.30 rows=1 width=17) (actual time=0.017..0.018 rows=1 loops=1)
+               Index Cond: ((phone)::text = '08000002500'::text)
+               Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=275
+ Planning Time: 0.604 ms
+ Execution Time: 1.353 ms
+(15 rows)
+

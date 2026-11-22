@@ -1,0 +1,60 @@
+-- Q4: Monthly transfer volume per branch for the last 6 months (management report)
+-- AFTER indexing
+SELECT b.branch_name, date_trunc('month', t.created_at) AS month,
+       count(*) AS transfers, sum(t.amount) AS total_value
+FROM txn t
+JOIN account  a ON a.account_id  = t.from_account_id
+JOIN customer c ON c.customer_id = a.customer_id
+JOIN branch   b ON b.branch_id   = c.branch_id
+WHERE t.txn_type = 'TRANSFER' AND t.status = 'SUCCESS'
+  AND t.created_at >= now() - INTERVAL '6 months'
+GROUP BY b.branch_name, month
+ORDER BY month, total_value DESC;
+
+                                                                                       QUERY PLAN                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=9532.95..9624.86 rows=36766 width=59) (actual time=62.296..62.305 rows=56 loops=1)
+   Sort Key: (date_trunc('month'::text, t.created_at)), (sum(t.amount)) DESC
+   Sort Method: quicksort  Memory: 28kB
+   Buffers: shared hit=479
+   ->  GroupAggregate  (cost=5733.90..6744.96 rows=36766 width=59) (actual time=53.683..62.204 rows=56 loops=1)
+         Group Key: b.branch_name, (date_trunc('month'::text, t.created_at))
+         Buffers: shared hit=473
+         ->  Sort  (cost=5733.90..5825.81 rows=36766 width=27) (actual time=53.610..55.855 rows=36805 loops=1)
+               Sort Key: b.branch_name, (date_trunc('month'::text, t.created_at))
+               Sort Method: quicksort  Memory: 3330kB
+               Buffers: shared hit=473
+               ->  Hash Join  (cost=473.98..2945.92 rows=36766 width=27) (actual time=5.289..37.338 rows=36805 loops=1)
+                     Hash Cond: (c.branch_id = b.branch_id)
+                     Buffers: shared hit=470
+                     ->  Hash Join  (cost=472.80..2705.18 rows=36766 width=20) (actual time=5.251..26.685 rows=36805 loops=1)
+                           Hash Cond: (a.customer_id = c.customer_id)
+                           Buffers: shared hit=469
+                           ->  Hash Join  (cost=289.30..2425.09 rows=36766 width=20) (actual time=3.203..17.647 rows=36805 loops=1)
+                                 Hash Cond: (t.from_account_id = a.account_id)
+                                 Buffers: shared hit=398
+                                 ->  Index Only Scan using idx_txn_type_status_created on txn t  (cost=0.43..2039.66 rows=36766 width=20) (actual time=0.031..7.053 rows=36805 loops=1)
+                                       Index Cond: ((txn_type = 'TRANSFER'::text) AND (status = 'SUCCESS'::text) AND (created_at >= (now() - '6 mons'::interval)))
+                                       Heap Fetches: 0
+                                       Buffers: shared hit=306
+                                 ->  Hash  (cost=179.50..179.50 rows=8750 width=8) (actual time=3.085..3.087 rows=8750 loops=1)
+                                       Buckets: 16384  Batches: 1  Memory Usage: 470kB
+                                       Buffers: shared hit=92
+                                       ->  Seq Scan on account a  (cost=0.00..179.50 rows=8750 width=8) (actual time=0.004..1.341 rows=8750 loops=1)
+                                             Buffers: shared hit=92
+                           ->  Hash  (cost=121.00..121.00 rows=5000 width=8) (actual time=2.005..2.006 rows=5000 loops=1)
+                                 Buckets: 8192  Batches: 1  Memory Usage: 260kB
+                                 Buffers: shared hit=71
+                                 ->  Seq Scan on customer c  (cost=0.00..121.00 rows=5000 width=8) (actual time=0.005..0.997 rows=5000 loops=1)
+                                       Buffers: shared hit=71
+                     ->  Hash  (cost=1.08..1.08 rows=8 width=15) (actual time=0.018..0.019 rows=8 loops=1)
+                           Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                           Buffers: shared hit=1
+                           ->  Seq Scan on branch b  (cost=0.00..1.08 rows=8 width=15) (actual time=0.005..0.007 rows=8 loops=1)
+                                 Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=541
+ Planning Time: 1.867 ms
+ Execution Time: 62.445 ms
+(43 rows)
+

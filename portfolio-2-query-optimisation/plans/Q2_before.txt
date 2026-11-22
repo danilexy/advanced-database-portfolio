@@ -1,0 +1,22 @@
+-- Q2: Failed transactions in the last 7 days, for the reversal job
+-- BEFORE indexing
+SELECT txn_id, reference, from_account_id, amount, created_at
+FROM txn
+WHERE status = 'FAILED' AND created_at >= now() - INTERVAL '7 days';
+
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.00..7606.20 rows=92 width=44) (actual time=0.239..27.160 rows=85 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=4097
+   ->  Parallel Seq Scan on txn  (cost=0.00..6597.00 rows=38 width=44) (actual time=0.468..20.780 rows=28 loops=3)
+         Filter: (((status)::text = 'FAILED'::text) AND (created_at >= (now() - '7 days'::interval)))
+         Rows Removed by Filter: 99972
+         Buffers: shared hit=4097
+ Planning:
+   Buffers: shared hit=101
+ Planning Time: 0.405 ms
+ Execution Time: 27.192 ms
+(12 rows)
+

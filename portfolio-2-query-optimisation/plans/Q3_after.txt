@@ -1,0 +1,22 @@
+-- Q3: Customer lookup by phone number (USSD login)
+-- AFTER indexing
+SELECT c.customer_id, c.first_name, c.last_name, a.account_number, a.balance
+FROM customer c JOIN account a ON a.customer_id = c.customer_id
+WHERE c.phone = '08000002500';
+
+                                                              QUERY PLAN                                                               
+---------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=0.57..16.80 rows=2 width=36) (actual time=0.030..0.033 rows=3 loops=1)
+   Buffers: shared hit=6
+   ->  Index Scan using customer_phone_key on customer c  (cost=0.28..8.30 rows=1 width=17) (actual time=0.017..0.018 rows=1 loops=1)
+         Index Cond: ((phone)::text = '08000002500'::text)
+         Buffers: shared hit=3
+   ->  Index Scan using idx_account_customer on account a  (cost=0.29..8.48 rows=2 width=23) (actual time=0.009..0.009 rows=3 loops=1)
+         Index Cond: (customer_id = c.customer_id)
+         Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=294
+ Planning Time: 0.660 ms
+ Execution Time: 0.067 ms
+(12 rows)
+

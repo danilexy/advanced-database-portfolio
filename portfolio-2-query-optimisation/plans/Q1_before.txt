@@ -1,0 +1,32 @@
+-- Q1: Account statement - last 20 transactions touching account 1234 (customer app screen)
+-- BEFORE indexing
+SELECT txn_id, txn_type, from_account_id, to_account_id, amount, status, created_at
+FROM txn
+WHERE from_account_id = 1234 OR to_account_id = 1234
+ORDER BY created_at DESC
+LIMIT 20;
+
+                                                          QUERY PLAN                                                           
+-------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=6972.51..6974.85 rows=20 width=48) (actual time=22.589..23.844 rows=20 loops=1)
+   Buffers: shared hit=4171
+   ->  Gather Merge  (cost=6972.51..6977.65 rows=44 width=48) (actual time=22.587..23.839 rows=20 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=4171
+         ->  Sort  (cost=5972.49..5972.55 rows=22 width=48) (actual time=18.458..18.460 rows=13 loops=3)
+               Sort Key: created_at DESC
+               Sort Method: quicksort  Memory: 26kB
+               Buffers: shared hit=4171
+               Worker 0:  Sort Method: quicksort  Memory: 26kB
+               Worker 1:  Sort Method: quicksort  Memory: 28kB
+               ->  Parallel Seq Scan on txn  (cost=0.00..5972.00 rows=22 width=48) (actual time=0.423..18.363 rows=16 loops=3)
+                     Filter: ((from_account_id = 1234) OR (to_account_id = 1234))
+                     Rows Removed by Filter: 99984
+                     Buffers: shared hit=4097
+ Planning:
+   Buffers: shared hit=116
+ Planning Time: 0.391 ms
+ Execution Time: 23.915 ms
+(20 rows)
+

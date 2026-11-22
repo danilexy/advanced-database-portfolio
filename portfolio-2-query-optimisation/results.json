@@ -1,0 +1,20 @@
+{
+  "before": {
+    "Q1": 22.735,
+    "Q2": 24.737,
+    "Q3": 1.476,
+    "Q4": 69.452
+  },
+  "after": {
+    "Q1": 0.38,
+    "Q2": 0.373,
+    "Q3": 0.074,
+    "Q4": 62.445
+  },
+  "titles": {
+    "Q1": "Account statement - last 20 transactions touching account 1234 (customer app screen)",
+    "Q2": "Failed transactions in the last 7 days, for the reversal job",
+    "Q3": "Customer lookup by phone number (USSD login)",
+    "Q4": "Monthly transfer volume per branch for the last 6 months (management report)"
+  }
+}

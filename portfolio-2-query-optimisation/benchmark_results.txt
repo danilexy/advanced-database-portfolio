@@ -1,0 +1,5 @@
+Query    Before (ms)   After (ms)  Speed-up
+Q1             22.73        0.380       60x
+Q2             24.74        0.373       66x
+Q3              1.48        0.074       20x
+Q4             69.45       62.445        1x

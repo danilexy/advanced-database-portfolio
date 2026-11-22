@@ -1,0 +1,21 @@
+-- Q2: Failed transactions in the last 7 days, for the reversal job
+-- AFTER indexing
+SELECT txn_id, reference, from_account_id, amount, created_at
+FROM txn
+WHERE status = 'FAILED' AND created_at >= now() - INTERVAL '7 days';
+
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on txn  (cost=5.01..333.51 rows=93 width=44) (actual time=0.041..0.412 rows=85 loops=1)
+   Recheck Cond: ((created_at >= (now() - '7 days'::interval)) AND ((status)::text = 'FAILED'::text))
+   Heap Blocks: exact=85
+   Buffers: shared hit=87
+   ->  Bitmap Index Scan on idx_txn_failed_created  (cost=0.00..4.99 rows=93 width=0) (actual time=0.021..0.021 rows=85 loops=1)
+         Index Cond: (created_at >= (now() - '7 days'::interval))
+         Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=198
+ Planning Time: 0.672 ms
+ Execution Time: 0.452 ms
+(11 rows)
+
