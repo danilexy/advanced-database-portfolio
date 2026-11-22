@@ -1,0 +1,9 @@
+      t      | count  
+-------------+--------
+ customer    |   5000
+ account     |   8750
+ txn         | 300000
+ beneficiary |   8000
+ branch      |      8
+(5 rows)
+

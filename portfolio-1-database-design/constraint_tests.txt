@@ -1,0 +1,15 @@
+-- Test 1: negative balance must be rejected (CHECK balance >= 0)
+ERROR:  new row for relation "account" violates check constraint "account_balance_check"
+DETAIL:  Failing row contains (1, 3000000001, 1, WALLET, -10.00, ACTIVE, 2026-09-26 00:40:21.131247+01).
+-- Test 2: invalid BVN must be rejected (CHECK regex)
+ERROR:  new row for relation "customer" violates check constraint "customer_bvn_check"
+DETAIL:  Failing row contains (5001, X, Y, x@y.ng, 0811, 12AB       , 1990-01-01, 1, 1, 2026-11-22 21:59:12.479723+01).
+-- Test 3: transfer to same account must be rejected (chk_txn_accounts)
+ERROR:  new row for relation "txn" violates check constraint "chk_txn_accounts"
+DETAIL:  Failing row contains (300001, e570fc54-197a-4689-92ef-dee039ce782b, TRANSFER, 5, 5, 1000.00, SUCCESS, APP, null, 2026-11-22 21:59:12.480143+01).
+-- Test 4: foreign key - account for non-existent customer
+ERROR:  insert or update on table "account" violates foreign key constraint "account_customer_id_fkey"
+DETAIL:  Key (customer_id)=(999999) is not present in table "customer".
+-- Test 5: duplicate email rejected (UNIQUE)
+ERROR:  duplicate key value violates unique constraint "customer_email_key"
+DETAIL:  Key (email)=(user1@swiftpay.ng) already exists.

@@ -1,0 +1,21 @@
+digraph ER {
+  graph [rankdir=LR, fontname="Helvetica", label="SwiftPay Digital Wallet - Entity Relationship Diagram (cardinality shown on relationships)", labelloc=t, fontsize=16, pad=0.3, nodesep=0.6, ranksep=1.1];
+  node [shape=plaintext, fontname="Helvetica", fontsize=11];
+  edge [fontname="Helvetica", fontsize=10, color="#444444"];
+  kyc_tier [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4"><tr><td bgcolor="#1f4e79"><font color="white"><b>KYC_TIER</b></font></td></tr><tr><td align="left"><u>tier_id</u> PK</td></tr><tr><td align="left">tier_name UQ</td></tr><tr><td align="left">daily_limit</td></tr><tr><td align="left">max_balance</td></tr></table>>];
+  branch [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4"><tr><td bgcolor="#1f4e79"><font color="white"><b>BRANCH</b></font></td></tr><tr><td align="left"><u>branch_id</u> PK</td></tr><tr><td align="left">branch_name</td></tr><tr><td align="left">state</td></tr></table>>];
+  customer [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4"><tr><td bgcolor="#1f4e79"><font color="white"><b>CUSTOMER</b></font></td></tr><tr><td align="left"><u>customer_id</u> PK</td></tr><tr><td align="left">first_name, last_name</td></tr><tr><td align="left">email UQ, phone UQ</td></tr><tr><td align="left">bvn UQ (11 digits)</td></tr><tr><td align="left">date_of_birth</td></tr><tr><td align="left">tier_id FK</td></tr><tr><td align="left">branch_id FK</td></tr><tr><td align="left">created_at</td></tr></table>>];
+  account [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4"><tr><td bgcolor="#1f4e79"><font color="white"><b>ACCOUNT</b></font></td></tr><tr><td align="left"><u>account_id</u> PK</td></tr><tr><td align="left">account_number UQ</td></tr><tr><td align="left">customer_id FK</td></tr><tr><td align="left">account_type</td></tr><tr><td align="left">balance (&gt;= 0)</td></tr><tr><td align="left">status</td></tr><tr><td align="left">opened_at</td></tr></table>>];
+  txn [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4"><tr><td bgcolor="#1f4e79"><font color="white"><b>TXN</b></font></td></tr><tr><td align="left"><u>txn_id</u> PK</td></tr><tr><td align="left">reference UQ (UUID)</td></tr><tr><td align="left">txn_type</td></tr><tr><td align="left">from_account_id FK</td></tr><tr><td align="left">to_account_id FK</td></tr><tr><td align="left">amount (&gt; 0)</td></tr><tr><td align="left">status, channel</td></tr><tr><td align="left">reversed_txn_id FK (self)</td></tr><tr><td align="left">created_at</td></tr></table>>];
+  beneficiary [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4"><tr><td bgcolor="#2e75b6"><font color="white"><b>BENEFICIARY</b> (associative)</font></td></tr><tr><td align="left"><u>customer_id</u> PK, FK</td></tr><tr><td align="left"><u>account_id</u> PK, FK</td></tr><tr><td align="left">nickname</td></tr><tr><td align="left">added_at</td></tr></table>>];
+  audit_log [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4"><tr><td bgcolor="#2e75b6"><font color="white"><b>AUDIT_LOG</b></font></td></tr><tr><td align="left"><u>audit_id</u> PK</td></tr><tr><td align="left">account_id FK</td></tr><tr><td align="left">old_balance, new_balance</td></tr><tr><td align="left">changed_by, changed_at</td></tr></table>>];
+  kyc_tier -> customer [label="1 : N  classifies"];
+  branch -> customer [label="1 : N  registers"];
+  customer -> account [label="1 : N  owns"];
+  account -> txn [label="1 : N  debited (from)"];
+  account -> txn [label="1 : N  credited (to)"];
+  txn -> txn [label="0..1  reverses"];
+  customer -> beneficiary [label="1 : N  saves"];
+  account -> beneficiary [label="1 : N  saved as"];
+  account -> audit_log [label="1 : N  audited by"];
+}
