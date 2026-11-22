@@ -1,0 +1,46 @@
+# Portfolio 5C - Deployment configuration for the same primary/replica topology
+# (configuration artefact: the tested setup itself was run with native PostgreSQL 16,
+#  see README.md. This file packages that topology for a cloud VM / any Docker host.)
+# Usage:  docker compose up -d
+services:
+  pg-primary:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?set PG_PASSWORD}
+      POSTGRES_DB: swiftpay
+    command: >
+      postgres -c wal_level=replica -c max_wal_senders=5
+               -c max_replication_slots=5 -c hot_standby=on
+               -c synchronous_commit=on
+    volumes:
+      - primary-data:/var/lib/postgresql/data
+      - ../portfolio-1-database-design/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ../portfolio-1-database-design/02_seed_data.sql:/docker-entrypoint-initdb.d/02_seed_data.sql:ro
+      - ./init/00_replication_user.sh:/docker-entrypoint-initdb.d/00_replication_user.sh:ro
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+  pg-replica:
+    image: postgres:16
+    depends_on:
+      pg-primary: { condition: service_healthy }
+    environment:
+      PGPASSWORD: ${PG_PASSWORD}
+    user: postgres
+    entrypoint: >
+      bash -c "
+      if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
+        pg_basebackup -h pg-primary -U replicator -D /var/lib/postgresql/data
+                      -R -X stream -C -S replica1_slot --checkpoint=fast;
+      fi;
+      exec postgres -c hot_standby=on"
+    volumes:
+      - replica-data:/var/lib/postgresql/data
+    ports: ["5433:5432"]
+
+volumes:
+  primary-data:
+  replica-data:
