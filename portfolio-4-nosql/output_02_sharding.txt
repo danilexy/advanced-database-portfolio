@@ -1,0 +1,40 @@
+psql:02_sharding_partitioning.sql:10: NOTICE:  table "txn_sharded" does not exist, skipping
+=== Data distribution across the 4 shards (hash spreads load evenly) ===
+    shard    |  rows  | pct  
+-------------+--------+------
+ txn_shard_0 | 108117 | 24.8
+ txn_shard_1 | 111864 | 25.6
+ txn_shard_2 | 111139 | 25.4
+ txn_shard_3 | 105664 | 24.2
+(4 rows)
+
+=== Single-shard query: statement for customer 100 -> planner PRUNES to 1 shard ===
+                       QUERY PLAN                        
+---------------------------------------------------------
+ Limit
+   ->  Sort
+         Sort Key: txn_sharded.created_at DESC
+         ->  Bitmap Heap Scan on txn_shard_1 txn_sharded
+               Recheck Cond: (customer_id = 100)
+               ->  Bitmap Index Scan on txn_shard_1_pkey
+                     Index Cond: (customer_id = 100)
+(7 rows)
+
+=== Scatter-gather query: no shard key -> must visit ALL shards ===
+                               QUERY PLAN                               
+------------------------------------------------------------------------
+ Finalize Aggregate
+   ->  Gather
+         Workers Planned: 2
+         ->  Partial Aggregate
+               ->  Parallel Append
+                     ->  Parallel Seq Scan on txn_shard_1 txn_sharded_2
+                           Filter: (amount > '49000'::numeric)
+                     ->  Parallel Seq Scan on txn_shard_2 txn_sharded_3
+                           Filter: (amount > '49000'::numeric)
+                     ->  Parallel Seq Scan on txn_shard_0 txn_sharded_1
+                           Filter: (amount > '49000'::numeric)
+                     ->  Parallel Seq Scan on txn_shard_3 txn_sharded_4
+                           Filter: (amount > '49000'::numeric)
+(13 rows)
+

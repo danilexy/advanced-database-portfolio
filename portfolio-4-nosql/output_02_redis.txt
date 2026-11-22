@@ -1,0 +1,65 @@
+=== 1. Session store with automatic expiry (TTL) ===
+OK
+"{\"customer_id\":100,\"device\":\"Android\",\"ip\":\"102.89.4.11\"}"
+TTL (s): (integer) 900
+
+=== 2. Cache-aside for balance lookups (USSD *123#) ===
+cache lookup: (nil)
+-> MISS, read from PostgreSQL and populate cache with 60 s TTL
+cache lookup: "171649.50"
+-> HIT (no database round-trip)
+-> after a transfer the app DELetes the key (invalidation) so the next read is fresh:
+(integer) 1
+
+=== 3. Atomic KYC daily-limit counter (TIER_1 limit = 50,000) ===
+spend 20000 -> ALLOWED (running total 20000)
+spend 25000 -> ALLOWED (running total 45000)
+spend 8000 -> REJECTED (would be 53000)
+spend 5000 -> ALLOWED (running total 50000)
+(The Lua script is atomic, so two concurrent requests can never both pass the check)
+
+=== 4. Sorted set: top 5 receiving accounts this month (loaded from PostgreSQL) ===
+members: (integer) 3449
+ 1) "acct:2757"
+ 2) "170003.01999999999"
+ 3) "acct:3692"
+ 4) "137023.75"
+ 5) "acct:1506"
+ 6) "131652.03"
+ 7) "acct:7173"
+ 8) "130356.09"
+ 9) "acct:6539"
+10) "126854.46000000001"
+live update when a new transfer of 500,000 lands on acct:42 ->
+acct:42 rank (0 = top): (integer) 0
+
+=== 5. Stream: append-only transaction events for the fraud & SMS consumers ===
+1) 1) "stream:txn"
+   2) 1) 1) "1795381411672-0"
+         2)  1) "ref"
+             2) "a23aa687"
+             3) "type"
+             4) "TRANSFER"
+             5) "from"
+             6) "3000000173"
+             7) "to"
+             8) "3000004034"
+             9) "amount"
+            10) "6284.42"
+      2) 1) "1795381411676-0"
+         2)  1) "ref"
+             2) "9b1e2f00"
+             3) "type"
+             4) "WITHDRAWAL"
+             5) "from"
+             6) "3000000174"
+             7) "amount"
+             8) "49000"
+             9) "channel"
+            10) "POS"
+
+=== Keyspace summary ===
+"lb:receivers:202611"
+"limit:100:20261122"
+"session:9f2c1ab7"
+"stream:txn"

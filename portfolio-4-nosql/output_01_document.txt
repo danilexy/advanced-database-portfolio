@@ -1,0 +1,148 @@
+SET
+psql:01_document_model_jsonb.sql:7: NOTICE:  table "customer_profile_doc" does not exist, skipping
+DROP TABLE
+CREATE TABLE
+INSERT 0 5000
+UPDATE 100
+CREATE INDEX
+ANALYZE
+=== Sample document (customer 100) ===
+                        jsonb_pretty                        
+------------------------------------------------------------
+ {                                                         +
+     "_id": 100,                                           +
+     "kyc": {                                              +
+         "tier": "TIER_3",                                 +
+         "daily_limit": 5000000.00                         +
+     },                                                    +
+     "name": {                                             +
+         "last": "Nwosu",                                  +
+         "first": "Emeka"                                  +
+     },                                                    +
+     "branch": {                                           +
+         "name": "Victoria Island",                        +
+         "state": "Lagos"                                  +
+     },                                                    +
+     "contact": {                                          +
+         "email": "user100@swiftpay.ng",                   +
+         "phone": "08000000100"                            +
+     },                                                    +
+     "accounts": [                                         +
+         {                                                 +
+             "type": "WALLET",                             +
+             "number": "3000000173",                       +
+             "status": "ACTIVE",                           +
+             "balance": 171649.50                          +
+         },                                                +
+         {                                                 +
+             "type": "SAVINGS",                            +
+             "number": "3000000174",                       +
+             "status": "ACTIVE",                           +
+             "balance": 101027.82                          +
+         },                                                +
+         {                                                 +
+             "type": "CURRENT",                            +
+             "number": "3000000175",                       +
+             "status": "ACTIVE",                           +
+             "balance": 72254.76                           +
+         }                                                 +
+     ],                                                    +
+     "business": {                                         +
+         "name": "Mama Put Ventures",                      +
+         "cac_no": "RC123456",                             +
+         "pos_terminals": 2                                +
+     },                                                    +
+     "preferences": {                                      +
+         "language": "English",                            +
+         "notifications": [                                +
+             "push"                                        +
+         ]                                                 +
+     },                                                    +
+     "recent_txns": [                                      +
+         {                                                 +
+             "at": "2026-11-22T21:03:10.825485+01:00",     +
+             "ref": "a23aa687-aafa-4e9e-8246-b4603fbdc998",+
+             "type": "TRANSFER",                           +
+             "amount": 6284.42,                            +
+             "status": "SUCCESS"                           +
+         },                                                +
+         {                                                 +
+             "at": "2026-11-16T20:09:15.11595+01:00",      +
+             "ref": "574e42ba-ee05-45c4-9c54-784ed30e34fb",+
+             "type": "TRANSFER",                           +
+             "amount": 39091.53,                           +
+             "status": "SUCCESS"                           +
+         },                                                +
+         {                                                 +
+             "at": "2026-11-15T17:51:38.765089+01:00",     +
+             "ref": "2da3bc5c-20bf-4ade-a633-4cb44b0bb82e",+
+             "type": "TRANSFER",                           +
+             "amount": 35215.54,                           +
+             "status": "SUCCESS"                           +
+         },                                                +
+         {                                                 +
+             "at": "2026-11-11T21:50:02.350433+01:00",     +
+             "ref": "12550169-b74e-47d3-a0d4-156628045e12",+
+             "type": "TRANSFER",                           +
+             "amount": 6080.83,                            +
+             "status": "SUCCESS"                           +
+         },                                                +
+         {                                                 +
+             "at": "2026-11-10T11:54:50.572876+01:00",     +
+             "ref": "710dc57a-7086-439b-878d-fb5bffbb8293",+
+             "type": "WITHDRAWAL",                         +
+             "amount": 21830.84,                           +
+             "status": "SUCCESS"                           +
+         }                                                 +
+     ],                                                    +
+     "beneficiaries": [                                    +
+         {                                                 +
+             "account": "3000004034",                      +
+             "nickname": "Saved #4034"                     +
+         }                                                 +
+     ]                                                     +
+ }
+(1 row)
+
+=== Query 1: containment @> - Yoruba-speaking customers with SMS alerts (uses GIN index) ===
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on customer_profile_doc (actual time=0.322..2.344 rows=1666 loops=1)
+   Recheck Cond: (doc @> '{"preferences": {"language": "Yoruba", "notifications": ["sms"]}}'::jsonb)
+   Heap Blocks: exact=1017
+   ->  Bitmap Index Scan on idx_profile_doc_gin (actual time=0.198..0.198 rows=1666 loops=1)
+         Index Cond: (doc @> '{"preferences": {"language": "Yoruba", "notifications": ["sms"]}}'::jsonb)
+ Planning Time: 0.048 ms
+ Execution Time: 2.421 ms
+(7 rows)
+
+ yoruba_sms_customers 
+----------------------
+                 1666
+(1 row)
+
+=== Query 2: customers who are businesses (attribute only exists on some documents) ===
+ customer_id |     business      | terminals 
+-------------+-------------------+-----------
+          50 | Mama Put Ventures | 2
+         100 | Mama Put Ventures | 2
+         150 | Mama Put Ventures | 2
+         200 | Mama Put Ventures | 2
+         250 | Mama Put Ventures | 2
+(5 rows)
+
+=== Query 3: JSONPath - customers holding any account with balance > 245,000 ===
+ rich_customers 
+----------------
+            192
+(1 row)
+
+=== Comparison: home-screen read, document (1 row) vs relational (4 joins) ===
+                                                  QUERY PLAN                                                  
+--------------------------------------------------------------------------------------------------------------
+ Index Scan using customer_profile_doc_pkey on customer_profile_doc (actual time=0.011..0.012 rows=1 loops=1)
+   Index Cond: (customer_id = 100)
+ Planning Time: 0.044 ms
+ Execution Time: 0.020 ms
+(4 rows)
+

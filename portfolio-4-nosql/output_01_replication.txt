@@ -1,0 +1,49 @@
+=== 1. Topology: which node is in recovery (read-only standby)? ===
+primary :5432 in_recovery = f
+replica :5433 in_recovery = t
+
+=== 2. Replication status seen from the primary (pg_stat_replication) ===
+ application_name |   state   | sync_state |  sent_lsn  | replay_lsn | lag_bytes |   replay_lag    
+------------------+-----------+------------+------------+------------+-----------+-----------------
+ walreceiver      | streaming | async      | 0/1300AEC0 | 0/1300AEC0 |         0 | 00:00:00.028098
+(1 row)
+
+   slot_name   | slot_type | active 
+---------------+-----------+--------
+ replica1_slot | physical  | t
+(1 row)
+
+=== 3. Write on primary -> read on replica ===
+primary committed transfer ref=1b8fc1bf-a715-4558-b99e-27efd872ce03 at 22:06:33.243709
+replica check #1 at 22:06:33.328277 -> rows found: 1
+replica replay delay: 00:00:00.212971
+
+=== 4. Replica is read-only (writes must go to the primary) ===
+ERROR:  cannot execute UPDATE in a read-only transaction
+
+=== 5. Read scaling: heavy report runs on the replica, primary stays free for payments ===
+ channel | txns  | value_millions 
+---------+-------+----------------
+ POS     | 97036 |         2430.3
+ USSD    | 96863 |         2428.3
+ APP     | 48661 |         1222.5
+ WEB     | 48390 |         1212.2
+(4 rows)
+
+=== 6. Failover: primary 'crashes', replica is promoted ===
+primary reachable? NO (down)
+pg_promote() executed on :5433
+replica :5433 in_recovery = f
+new primary :5433 accepted a write (transfer 302 -> 301)
+ account_id | balance  
+------------+----------
+        301 | 45000.00
+        302 | 55000.00
+(2 rows)
+
+No committed transfer was lost: the transfer from step 3 is on the new primary:
+ txn_id | from_account_id | to_account_id | amount  
+--------+-----------------+---------------+---------
+ 300014 |             301 |           302 | 7500.00
+(1 row)
+
