@@ -1,0 +1,71 @@
+SET
+=== Starting balances ===
+ account_id |  balance  
+------------+-----------
+        101 | 100000.00
+        102 | 100000.00
+        103 | 100000.00
+(3 rows)
+
+=== 1a. Successful transfer of 25,000 from 101 -> 102, then COMMIT ===
+BEGIN
+CALL
+COMMIT
+ account_id |  balance  
+------------+-----------
+        101 |  75000.00
+        102 | 125000.00
+(2 rows)
+
+=== 1b. Explicit ROLLBACK: operator debits 101 by 50,000 then cancels ===
+BEGIN
+UPDATE 1
+ account_id | balance_inside_txn 
+------------+--------------------
+        101 |           25000.00
+(1 row)
+
+ROLLBACK
+ account_id | balance_after_rollback 
+------------+------------------------
+        101 |               75000.00
+(1 row)
+
+=== 1c. Atomicity: transfer of 1,000,000 fails (insufficient funds) -> whole txn aborted ===
+BEGIN
+psql:01_commit_rollback.sql:23: ERROR:  Insufficient funds: balance 75000.00, requested 1000000
+CONTEXT:  PL/pgSQL function transfer_funds(integer,integer,numeric,text) line 17 at RAISE
+ROLLBACK
+ account_id |  balance  
+------------+-----------
+        101 |  75000.00
+        102 | 125000.00
+(2 rows)
+
+=== 1d. SAVEPOINT: batch salary payment, one bad line rolled back, rest committed ===
+BEGIN
+CALL
+SAVEPOINT
+psql:01_commit_rollback.sql:31: ERROR:  Insufficient funds: balance 90000.00, requested 9999999
+CONTEXT:  PL/pgSQL function transfer_funds(integer,integer,numeric,text) line 17 at RAISE
+ROLLBACK
+CALL
+COMMIT
+ account_id |  balance  
+------------+-----------
+        101 |  85000.00
+        102 | 130000.00
+        103 |  85000.00
+(3 rows)
+
+=== Audit trail written by trigger (only committed changes survive) ===
+ account_id | old_balance | new_balance 
+------------+-------------+-------------
+        101 |   100000.00 |    75000.00
+        102 |   100000.00 |   125000.00
+        103 |   100000.00 |    90000.00
+        101 |    75000.00 |    85000.00
+        103 |    90000.00 |    85000.00
+        102 |   125000.00 |   130000.00
+(6 rows)
+
